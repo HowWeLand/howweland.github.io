@@ -56,7 +56,8 @@
 <body class="bg-black text-gray-300 flex items-center justify-center min-h-screen p-4">
 
     <div class="w-full max-w-5xl">
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-8" id="downloadable-card">
+        <!-- This is the ID for the main downloadable element -->
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-8" id="downloadable-card-area">
             
             <!-- Main Business Card Box -->
             <div class="md:col-span-2 ascii-box">
@@ -127,6 +128,9 @@
                 <button id="download-image-button" class="ascii-button w-full">
                     [ Download as Image ]
                 </button>
+                <button id="download-qr-button" class="ascii-button w-full">
+                    [ Download QR Code ]
+                </button>
             </div>
 
         </div>
@@ -161,20 +165,18 @@
         });
 
         // --- QR Code Generation ---
-        // This generates a QR code for your GitHub Pages URL
         const qrUrl = "https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=" + encodeURIComponent("https://howweland.github.io");
-        document.getElementById('qr-code').src = qrUrl;
+        const qrImg = document.getElementById('qr-code');
+        qrImg.src = qrUrl;
 
-        // --- Download as Image Logic ---
+        // --- Download as Image Logic (The one you want for the lock screen) ---
         document.getElementById('download-image-button').addEventListener('click', () => {
-            const cardElement = document.getElementById('downloadable-card');
+            const cardElement = document.getElementById('downloadable-card-area');
             
             html2canvas(cardElement, {
                 backgroundColor: null, // Use the body's background
                 onclone: (clonedDoc) => {
-                    // Find the card element in the cloned document
-                    const clonedCard = clonedDoc.getElementById('downloadable-card');
-                    // Ensure it's visible for the canvas rendering
+                    const clonedCard = clonedDoc.getElementById('downloadable-card-area');
                     clonedCard.style.display = 'block';
                 }
             }).then(canvas => {
@@ -183,6 +185,21 @@
                 link.href = canvas.toDataURL('image/png');
                 link.click();
             });
+        });
+
+        // --- Download QR Code Only Logic (The fixed version) ---
+        document.getElementById('download-qr-button').addEventListener('click', () => {
+            fetch(qrUrl)
+                .then(response => response.blob())
+                .then(blob => {
+                    const link = document.createElement('a');
+                    link.href = URL.createObjectURL(blob);
+                    link.download = 'James_Myint_QR.png';
+                    document.body.appendChild(link);
+                    link.click();
+                    document.body.removeChild(link);
+                })
+                .catch(e => console.error('QR Download failed:', e));
         });
     </script>
 
