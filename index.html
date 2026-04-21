@@ -455,6 +455,24 @@
     .hero-name { font-size: 2rem; }
     .job-header { flex-direction: column; gap: 0.1rem; }
   }
+
+  /* STATS NOTICE */
+  .stats-notice {
+    border: 1px solid var(--amber-dim);
+    background: var(--amber-dark);
+    border-radius: 3px;
+    padding: 1rem 1.4rem;
+    margin-bottom: 0;
+    line-height: 1.8;
+  }
+  .stats-notice .notice-label {
+    font-size: 10px; letter-spacing: 0.2em; text-transform: uppercase;
+    color: var(--amber-dim); margin-bottom: 0.4rem;
+  }
+  .stats-notice p { color: var(--amber-pale); font-size: 13px; }
+  .stats-notice a { color: var(--amber); text-decoration: underline; text-underline-offset: 3px; }
+  .stats-notice a:hover { text-shadow: 0 0 8px var(--amber-glow); }
+
 </style>
 </head>
 <body>
@@ -467,6 +485,7 @@
     <li><a href="#skills">Skills</a></li>
     <li><a href="#education">Education</a></li>
     <li><a href="#contact">Contact</a></li>
+    <li><a href="/stats/">Stats</a></li>
   </ul>
 </nav>
 
@@ -495,6 +514,13 @@
       <div class="contact-item"><span class="lbl">LINKEDIN//</span><a href="https://www.linkedin.com/in/james-myint/" target="_blank">linkedin.com/in/james-myint</a></div>
       <div class="contact-item"><span class="lbl">CREDLY  //</span><a href="https://www.credly.com/users/james-myint/" target="_blank">credly.com/users/james-myint</a></div>
       <div class="contact-item"><span class="lbl">LOCALE  //</span>St. Louis Metro, IL · Remote Available</div>
+    </div>
+  </section>
+
+  <section id="stats-notice" style="margin-bottom:2.5rem;animation-delay:0.08s;">
+    <div class="stats-notice">
+      <div class="notice-label">// Notice</div>
+      <p>I noticed an anomalous traffic pattern on the LLM paper of Clones &gt; Views and now have a <a href="/stats/">dashboard so everyone can see what I see</a>.</p>
     </div>
   </section>
 
