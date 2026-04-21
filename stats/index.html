@@ -52,6 +52,19 @@
     .nav-links a { color: var(--text-dim); text-decoration: none; font-size: 11px; letter-spacing: 0.15em; text-transform: uppercase; transition: color 0.15s; }
     .nav-links a:hover { color: var(--amber); }
     main { max-width: 980px; margin: 0 auto; padding: 72px 2rem 5rem; }
+    .notice {
+      border: 1px solid var(--amber-dim);
+      background: var(--amber-dark);
+      border-radius: 3px;
+      padding: 1rem 1.4rem;
+      margin-bottom: 2.5rem;
+      line-height: 1.8;
+    }
+    .notice .notice-label {
+      font-size: 10px; letter-spacing: 0.2em; text-transform: uppercase;
+      color: var(--amber-dim); margin-bottom: 0.4rem;
+    }
+    .notice p { color: var(--amber-pale); font-size: 13px; }
     h1 { color: var(--amber); font-size: 11px; letter-spacing: 0.22em; text-transform: uppercase; margin-bottom: 0.3rem; }
     .subtitle { color: var(--text-dim); font-size: 11px; margin-bottom: 3rem; }
     .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; margin-bottom: 2.5rem; }
@@ -82,8 +95,6 @@
     td.num { color: var(--amber); text-align: right; font-variant-numeric: tabular-nums; }
     th.num { text-align: right; }
     .repo-tag { display: inline-block; background: var(--amber-dark); color: var(--amber-pale); padding: 1px 6px; border-radius: 2px; font-size: 10px; }
-    .loading { color: var(--text-dim); font-size: 11px; letter-spacing: 0.1em; padding: 2rem 0; }
-    .updated { color: var(--text-dim); font-size: 10px; letter-spacing: 0.08em; margin-top: 0.6rem; }
     @media(max-width: 640px) { .two-col { grid-template-columns: 1fr; } }
   </style>
 </head>
@@ -96,6 +107,12 @@
   </ul>
 </nav>
 <main>
+
+  <div class="notice">
+    <div class="notice-label">// Notice</div>
+    <p>I noticed an anomalous traffic pattern on the LLM paper of Clones &gt; Views and now have a dashboard so everyone can see what I see.</p>
+  </div>
+
   <h1>// Repo Traffic Dashboard</h1>
   <p class="subtitle" id="updated-at">Loading...</p>
 
@@ -132,29 +149,12 @@
 <script>
 const DATA_URL = '/stats/data.json';
 const AMBER       = '#ffb000';
-const AMBER_DIM   = 'rgba(255,176,0,0.15)';
 const AMBER_MID   = 'rgba(255,176,0,0.5)';
-const CHART_DEFAULTS = {
-  color: '#5a3a00',
-  borderColor: '#2a1f00',
-  backgroundColor: 'transparent'
-};
 
 Chart.defaults.color = '#5a3a00';
 Chart.defaults.borderColor = '#2a1f00';
 Chart.defaults.font.family = "'IBM Plex Mono', 'Share Tech Mono', monospace";
 Chart.defaults.font.size = 11;
-
-function parseCSV(text) {
-  const lines = text.trim().split('\n');
-  const headers = lines[0].split(',');
-  return lines.slice(1).map(l => {
-    const vals = l.split(',');
-    const obj = {};
-    headers.forEach((h, i) => obj[h.trim()] = vals[i]?.trim() ?? '');
-    return obj;
-  });
-}
 
 function sumBy(rows, key) {
   return rows.reduce((s, r) => s + (parseInt(r[key]) || 0), 0);
@@ -184,7 +184,7 @@ const PALETTE = [
 async function loadAndRender() {
   const resp = await fetch(DATA_URL + '?t=' + Date.now());
   if (!resp.ok) {
-    document.getElementById('updated-at').textContent = 'No data yet — workflow hasn\'t run.';
+    document.getElementById('updated-at').textContent = 'No data yet — workflow has not run.';
     return;
   }
   const data = await resp.json();
@@ -194,12 +194,10 @@ async function loadAndRender() {
   const referrerRows = data.referrers || [];
   const pathRows     = data.paths     || [];
 
-  // Updated timestamp
   const ts = cloneRows[0]?.collected_at || viewRows[0]?.collected_at || '';
   document.getElementById('updated-at').textContent =
     ts ? 'Last updated ' + new Date(ts).toLocaleString() : 'Data available';
 
-  // Summary cards
   const totalClones  = sumBy(cloneRows, 'clones_total');
   const totalViews   = sumBy(viewRows,  'views_total');
   const uniqueClones = sumBy(cloneRows, 'clones_unique');
@@ -215,7 +213,6 @@ async function loadAndRender() {
     `<div class="stat-card"><div class="label">${c.label}</div><div class="value">${c.value.toLocaleString()}</div><div class="sub">${c.sub}</div></div>`
   ).join('');
 
-  // --- Clones line chart (per day, top repos) ---
   const clonesByRepo = {};
   cloneRows.forEach(r => {
     if (!clonesByRepo[r.repo]) clonesByRepo[r.repo] = {};
@@ -234,7 +231,6 @@ async function loadAndRender() {
     borderWidth: 1.5, pointRadius: 2, tension: 0.3
   })));
 
-  // --- Views line chart ---
   const viewsByRepo = {};
   viewRows.forEach(r => {
     if (!viewsByRepo[r.repo]) viewsByRepo[r.repo] = {};
@@ -253,7 +249,6 @@ async function loadAndRender() {
     borderWidth: 1.5, pointRadius: 2, tension: 0.3
   })));
 
-  // --- Clones by repo bar chart ---
   const cloneTotals = Object.entries(clonesByRepo)
     .map(([repo, days]) => ({ repo, total: Object.values(days).reduce((a,b)=>a+b,0) }))
     .filter(x => x.total > 0)
@@ -275,7 +270,6 @@ async function loadAndRender() {
     }
   });
 
-  // --- Referrers table ---
   const refAgg = {};
   referrerRows.forEach(r => {
     const key = r.referrer + '|' + r.repo;
@@ -288,7 +282,6 @@ async function loadAndRender() {
     `<tr><td>${r.referrer}</td><td><span class="repo-tag">${r.repo}</span></td><td class="num">${r.views}</td><td class="num">${r.uniques}</td></tr>`
   ).join('') || '<tr><td colspan="4" style="color:var(--text-dim)">No referrer data yet</td></tr>';
 
-  // --- Paths table ---
   const pathAgg = {};
   pathRows.forEach(r => {
     if (!pathAgg[r.path]) pathAgg[r.path] = { path: r.path, title: r.title, views: 0, uniques: 0 };
