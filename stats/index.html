@@ -1,0 +1,309 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Repo Traffic Stats // J.MYINT</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4/dist/chart.umd.min.js"></script>
+  <style>
+    :root {
+      --bg:         #0e0900;
+      --bg-warm:    #120c00;
+      --surface:    #1a1100;
+      --border:     #2a1f00;
+      --border-hi:  #3d2e00;
+      --amber:      #ffb000;
+      --amber-dim:  #7a5400;
+      --amber-dark: #3d2a00;
+      --amber-glow: #ffc84080;
+      --amber-pale: #ffd87a;
+      --text:       #d48800;
+      --text-dim:   #5a3a00;
+      --text-bright:#ffb000;
+      --mono: 'IBM Plex Mono', 'Share Tech Mono', monospace;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html { scroll-behavior: smooth; }
+    body {
+      background: var(--bg);
+      background-image: radial-gradient(ellipse at 50% 0%, #1f1000 0%, #0e0900 70%);
+      color: var(--text);
+      font-family: var(--mono);
+      font-size: 13px;
+      line-height: 1.7;
+      min-height: 100vh;
+    }
+    body::after {
+      content: '';
+      position: fixed; inset: 0;
+      background: repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0,0,0,0.07) 2px, rgba(0,0,0,0.07) 4px);
+      pointer-events: none; z-index: 900;
+    }
+    nav {
+      position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+      background: rgba(14,9,0,0.96);
+      backdrop-filter: blur(4px);
+      border-bottom: 1px solid var(--border-hi);
+      padding: 0 2rem; height: 48px;
+      display: flex; align-items: center; justify-content: space-between;
+    }
+    .nav-id { color: var(--amber); font-size: 12px; letter-spacing: 0.18em; text-transform: uppercase; }
+    .nav-links { display: flex; gap: 2rem; list-style: none; }
+    .nav-links a { color: var(--text-dim); text-decoration: none; font-size: 11px; letter-spacing: 0.15em; text-transform: uppercase; transition: color 0.15s; }
+    .nav-links a:hover { color: var(--amber); }
+    main { max-width: 980px; margin: 0 auto; padding: 72px 2rem 5rem; }
+    h1 { color: var(--amber); font-size: 11px; letter-spacing: 0.22em; text-transform: uppercase; margin-bottom: 0.3rem; }
+    .subtitle { color: var(--text-dim); font-size: 11px; margin-bottom: 3rem; }
+    .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; margin-bottom: 2.5rem; }
+    .stat-card {
+      background: var(--surface); border: 1px solid var(--border);
+      padding: 1.2rem 1.4rem; border-radius: 3px;
+    }
+    .stat-card .label { font-size: 10px; letter-spacing: 0.18em; text-transform: uppercase; color: var(--text-dim); margin-bottom: 0.4rem; }
+    .stat-card .value { font-size: 28px; color: var(--amber); letter-spacing: -0.02em; line-height: 1; }
+    .stat-card .sub { font-size: 10px; color: var(--text-dim); margin-top: 0.3rem; }
+    .section { margin-bottom: 3.5rem; }
+    .section-title {
+      font-size: 10px; letter-spacing: 0.2em; text-transform: uppercase;
+      color: var(--amber-dim); border-bottom: 1px solid var(--border);
+      padding-bottom: 0.5rem; margin-bottom: 1.5rem;
+    }
+    .chart-wrap {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: 3px; padding: 1.5rem; margin-bottom: 1rem;
+    }
+    .chart-wrap canvas { max-height: 260px; }
+    .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+    .table-wrap { overflow-x: auto; }
+    table { width: 100%; border-collapse: collapse; font-size: 12px; }
+    th { color: var(--text-dim); font-size: 10px; letter-spacing: 0.12em; text-transform: uppercase; text-align: left; padding: 0.5rem 0.8rem; border-bottom: 1px solid var(--border); }
+    td { padding: 0.5rem 0.8rem; border-bottom: 1px solid var(--border); color: var(--text); }
+    tr:last-child td { border-bottom: none; }
+    td.num { color: var(--amber); text-align: right; font-variant-numeric: tabular-nums; }
+    th.num { text-align: right; }
+    .repo-tag { display: inline-block; background: var(--amber-dark); color: var(--amber-pale); padding: 1px 6px; border-radius: 2px; font-size: 10px; }
+    .loading { color: var(--text-dim); font-size: 11px; letter-spacing: 0.1em; padding: 2rem 0; }
+    .updated { color: var(--text-dim); font-size: 10px; letter-spacing: 0.08em; margin-top: 0.6rem; }
+    @media(max-width: 640px) { .two-col { grid-template-columns: 1fr; } }
+  </style>
+</head>
+<body>
+<nav>
+  <span class="nav-id">J.MYINT//</span>
+  <ul class="nav-links">
+    <li><a href="/">Home</a></li>
+    <li><a href="/stats/">Stats</a></li>
+  </ul>
+</nav>
+<main>
+  <h1>// Repo Traffic Dashboard</h1>
+  <p class="subtitle" id="updated-at">Loading...</p>
+
+  <div class="grid" id="summary-cards"></div>
+
+  <div class="section">
+    <div class="section-title">14-Day Clones</div>
+    <div class="chart-wrap"><canvas id="chart-clones"></canvas></div>
+  </div>
+
+  <div class="section">
+    <div class="section-title">14-Day Views</div>
+    <div class="chart-wrap"><canvas id="chart-views"></canvas></div>
+  </div>
+
+  <div class="section two-col">
+    <div>
+      <div class="section-title">Top Referrers</div>
+      <div class="chart-wrap table-wrap"><table id="tbl-referrers"><thead><tr><th>Referrer</th><th>Repo</th><th class="num">Views</th><th class="num">Uniques</th></tr></thead><tbody></tbody></table></div>
+    </div>
+    <div>
+      <div class="section-title">Top Paths</div>
+      <div class="chart-wrap table-wrap"><table id="tbl-paths"><thead><tr><th>Path</th><th class="num">Views</th><th class="num">Uniques</th></tr></thead><tbody></tbody></table></div>
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="section-title">Clones by Repo (14-day total)</div>
+    <div class="chart-wrap"><canvas id="chart-clones-by-repo"></canvas></div>
+  </div>
+
+</main>
+
+<script>
+const DATA_URL = '/stats/data.json';
+const AMBER       = '#ffb000';
+const AMBER_DIM   = 'rgba(255,176,0,0.15)';
+const AMBER_MID   = 'rgba(255,176,0,0.5)';
+const CHART_DEFAULTS = {
+  color: '#5a3a00',
+  borderColor: '#2a1f00',
+  backgroundColor: 'transparent'
+};
+
+Chart.defaults.color = '#5a3a00';
+Chart.defaults.borderColor = '#2a1f00';
+Chart.defaults.font.family = "'IBM Plex Mono', 'Share Tech Mono', monospace";
+Chart.defaults.font.size = 11;
+
+function parseCSV(text) {
+  const lines = text.trim().split('\n');
+  const headers = lines[0].split(',');
+  return lines.slice(1).map(l => {
+    const vals = l.split(',');
+    const obj = {};
+    headers.forEach((h, i) => obj[h.trim()] = vals[i]?.trim() ?? '');
+    return obj;
+  });
+}
+
+function sumBy(rows, key) {
+  return rows.reduce((s, r) => s + (parseInt(r[key]) || 0), 0);
+}
+
+function makeLineChart(canvasId, labels, datasets) {
+  const ctx = document.getElementById(canvasId).getContext('2d');
+  return new Chart(ctx, {
+    type: 'line',
+    data: { labels, datasets },
+    options: {
+      responsive: true,
+      plugins: { legend: { position: 'bottom', labels: { boxWidth: 10, padding: 16 } } },
+      scales: {
+        x: { grid: { color: '#1a1100' }, ticks: { maxTicksLimit: 14 } },
+        y: { grid: { color: '#1a1100' }, beginAtZero: true, ticks: { precision: 0 } }
+      }
+    }
+  });
+}
+
+const PALETTE = [
+  '#ffb000','#ff7800','#ffd87a','#c85000','#ffcc66',
+  '#a06000','#ffe0a0','#804000','#ffa040','#603000'
+];
+
+async function loadAndRender() {
+  const resp = await fetch(DATA_URL + '?t=' + Date.now());
+  if (!resp.ok) {
+    document.getElementById('updated-at').textContent = 'No data yet — workflow hasn\'t run.';
+    return;
+  }
+  const data = await resp.json();
+
+  const cloneRows    = data.clones    || [];
+  const viewRows     = data.views     || [];
+  const referrerRows = data.referrers || [];
+  const pathRows     = data.paths     || [];
+
+  // Updated timestamp
+  const ts = cloneRows[0]?.collected_at || viewRows[0]?.collected_at || '';
+  document.getElementById('updated-at').textContent =
+    ts ? 'Last updated ' + new Date(ts).toLocaleString() : 'Data available';
+
+  // Summary cards
+  const totalClones  = sumBy(cloneRows, 'clones_total');
+  const totalViews   = sumBy(viewRows,  'views_total');
+  const uniqueClones = sumBy(cloneRows, 'clones_unique');
+  const uniqueViews  = sumBy(viewRows,  'views_unique');
+  const repoCount = [...new Set([...cloneRows, ...viewRows].map(r => r.repo))].length;
+  const cards = [
+    { label: 'Total Clones',  value: totalClones,  sub: uniqueClones + ' unique' },
+    { label: 'Total Views',   value: totalViews,   sub: uniqueViews + ' unique' },
+    { label: 'Repos Tracked', value: repoCount,    sub: 'with traffic data' },
+    { label: 'Referrers',     value: [...new Set(referrerRows.map(r => r.referrer))].length, sub: 'unique sources' },
+  ];
+  document.getElementById('summary-cards').innerHTML = cards.map(c =>
+    `<div class="stat-card"><div class="label">${c.label}</div><div class="value">${c.value.toLocaleString()}</div><div class="sub">${c.sub}</div></div>`
+  ).join('');
+
+  // --- Clones line chart (per day, top repos) ---
+  const clonesByRepo = {};
+  cloneRows.forEach(r => {
+    if (!clonesByRepo[r.repo]) clonesByRepo[r.repo] = {};
+    const day = r.date.slice(0,10);
+    clonesByRepo[r.repo][day] = (clonesByRepo[r.repo][day] || 0) + (parseInt(r.clones_total) || 0);
+  });
+  const allDays = [...new Set(cloneRows.map(r => r.date.slice(0,10)))].sort();
+  const topCloneRepos = Object.entries(clonesByRepo)
+    .map(([repo, days]) => ({ repo, total: Object.values(days).reduce((a,b)=>a+b,0) }))
+    .sort((a,b) => b.total - a.total).slice(0, 8).map(x => x.repo);
+  makeLineChart('chart-clones', allDays, topCloneRepos.map((repo, i) => ({
+    label: repo,
+    data: allDays.map(d => clonesByRepo[repo][d] || 0),
+    borderColor: PALETTE[i % PALETTE.length],
+    backgroundColor: 'transparent',
+    borderWidth: 1.5, pointRadius: 2, tension: 0.3
+  })));
+
+  // --- Views line chart ---
+  const viewsByRepo = {};
+  viewRows.forEach(r => {
+    if (!viewsByRepo[r.repo]) viewsByRepo[r.repo] = {};
+    const day = r.date.slice(0,10);
+    viewsByRepo[r.repo][day] = (viewsByRepo[r.repo][day] || 0) + (parseInt(r.views_total) || 0);
+  });
+  const allViewDays = [...new Set(viewRows.map(r => r.date.slice(0,10)))].sort();
+  const topViewRepos = Object.entries(viewsByRepo)
+    .map(([repo, days]) => ({ repo, total: Object.values(days).reduce((a,b)=>a+b,0) }))
+    .sort((a,b) => b.total - a.total).slice(0, 8).map(x => x.repo);
+  makeLineChart('chart-views', allViewDays, topViewRepos.map((repo, i) => ({
+    label: repo,
+    data: allViewDays.map(d => viewsByRepo[repo][d] || 0),
+    borderColor: PALETTE[i % PALETTE.length],
+    backgroundColor: 'transparent',
+    borderWidth: 1.5, pointRadius: 2, tension: 0.3
+  })));
+
+  // --- Clones by repo bar chart ---
+  const cloneTotals = Object.entries(clonesByRepo)
+    .map(([repo, days]) => ({ repo, total: Object.values(days).reduce((a,b)=>a+b,0) }))
+    .filter(x => x.total > 0)
+    .sort((a,b) => b.total - a.total).slice(0, 15);
+  const ctx3 = document.getElementById('chart-clones-by-repo').getContext('2d');
+  new Chart(ctx3, {
+    type: 'bar',
+    data: {
+      labels: cloneTotals.map(x => x.repo),
+      datasets: [{ label: 'Clones', data: cloneTotals.map(x => x.total), backgroundColor: AMBER_MID, borderColor: AMBER, borderWidth: 1 }]
+    },
+    options: {
+      responsive: true,
+      plugins: { legend: { display: false } },
+      scales: {
+        x: { grid: { color: '#1a1100' } },
+        y: { grid: { color: '#1a1100' }, beginAtZero: true, ticks: { precision: 0 } }
+      }
+    }
+  });
+
+  // --- Referrers table ---
+  const refAgg = {};
+  referrerRows.forEach(r => {
+    const key = r.referrer + '|' + r.repo;
+    if (!refAgg[key]) refAgg[key] = { referrer: r.referrer, repo: r.repo, views: 0, uniques: 0 };
+    refAgg[key].views += parseInt(r.views_total) || 0;
+    refAgg[key].uniques += parseInt(r.views_unique) || 0;
+  });
+  const topRefs = Object.values(refAgg).sort((a,b) => b.views - a.views).slice(0, 20);
+  document.querySelector('#tbl-referrers tbody').innerHTML = topRefs.map(r =>
+    `<tr><td>${r.referrer}</td><td><span class="repo-tag">${r.repo}</span></td><td class="num">${r.views}</td><td class="num">${r.uniques}</td></tr>`
+  ).join('') || '<tr><td colspan="4" style="color:var(--text-dim)">No referrer data yet</td></tr>';
+
+  // --- Paths table ---
+  const pathAgg = {};
+  pathRows.forEach(r => {
+    if (!pathAgg[r.path]) pathAgg[r.path] = { path: r.path, title: r.title, views: 0, uniques: 0 };
+    pathAgg[r.path].views   += parseInt(r.views_total)  || 0;
+    pathAgg[r.path].uniques += parseInt(r.views_unique) || 0;
+  });
+  const topPaths = Object.values(pathAgg).sort((a,b) => b.views - a.views).slice(0, 20);
+  document.querySelector('#tbl-paths tbody').innerHTML = topPaths.map(r =>
+    `<tr><td title="${r.title || ''}">${r.path}</td><td class="num">${r.views}</td><td class="num">${r.uniques}</td></tr>`
+  ).join('') || '<tr><td colspan="3" style="color:var(--text-dim)">No path data yet</td></tr>';
+}
+
+loadAndRender().catch(e => {
+  document.getElementById('updated-at').textContent = 'Error loading data: ' + e.message;
+});
+</script>
+</body>
+</html>
